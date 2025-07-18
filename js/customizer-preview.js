@@ -1,433 +1,567 @@
 /**
- * Script de prévisualisation en temps réel pour le customizer Isabel
- * Permet de voir les changements de formatage instantanément
+ * CORRECTION COMPLÈTE - Synchronisation Customizer Word-like
+ * Résout les bugs de mise à jour en temps réel
  */
 
 (function($) {
     'use strict';
 
-    // Configuration des éléments à prévisualiser
-    const previewElements = {
-        // Header
-        'isabel_header_name': '.logo-name',
-        'isabel_header_subtitle': '.logo-subtitle',
+    // Configuration globale
+    const IsabelSync = {
+        debug: true,
+        instances: {},
+        previewWindow: null,
         
-        // Hero section
-        'isabel_main_name': '.profile-info h1',
-        'isabel_subtitle': '.profile-subtitle',
-        'isabel_intro_text': '.intro-text',
-        'isabel_hero_badge': '.hero-badge',
-        'isabel_main_button_text': '.cta-main span:last-child',
-        
-        // Services
-        'isabel_services_title': '.services-section .section-title',
-        'isabel_services_subtitle': '.services-section .section-subtitle',
-        
-        // Témoignages
-        'isabel_testimonials_title': '.testimonials-section .section-title',
-        'isabel_testimonials_subtitle': '.testimonials-section .section-subtitle',
-        
-        // CTA
-        'isabel_cta_title': '.cta-title',
-        'isabel_cta_text': '.cta-text',
-        'isabel_cta_button': '.cta-button',
-        
-        // Modal
-        'isabel_form_title': '.modal-title',
-        'isabel_form_subtitle': '.modal-subtitle',
-        
-        // Qualiopi
-        'isabel_qualiopi_title': '.qualiopi-text h3',
-        'isabel_qualiopi_description': '.qualiopi-text p'
+        // Mapping des settings vers les sélecteurs CSS dans le preview
+        settingsMap: {
+            // Hero section
+            'isabel_main_name_word': '.profile-info, .profile-info h1',
+            'isabel_subtitle_word': '.profile-subtitle, .profile-subtitle p',
+            'isabel_intro_text_word': '.intro-text, .intro-text p',
+            'isabel_hero_badge_word': '.hero-badge',
+            'isabel_main_button_text_word': '.cta-main span:last-child',
+            
+            // Services - 4 services complets
+            'isabel_services_title_word': '.services-section .section-title, .services-section h2',
+            'isabel_services_subtitle_word': '.services-section .section-subtitle, .services-section p',
+            
+            // Services individuels
+            'isabel_service1_title_word': '.service-card:nth-child(1) h3, .service-card:nth-child(1) .service-title-container',
+            'isabel_service1_desc_word': '.service-card:nth-child(1) p, .service-card:nth-child(1) .service-description-container',
+            'isabel_service2_title_word': '.service-card:nth-child(2) h3, .service-card:nth-child(2) .service-title-container',
+            'isabel_service2_desc_word': '.service-card:nth-child(2) p, .service-card:nth-child(2) .service-description-container',
+            'isabel_service3_title_word': '.service-card:nth-child(3) h3, .service-card:nth-child(3) .service-title-container',
+            'isabel_service3_desc_word': '.service-card:nth-child(3) p, .service-card:nth-child(3) .service-description-container',
+            'isabel_service4_title_word': '.service-card:nth-child(4) h3, .service-card:nth-child(4) .service-title-container',
+            'isabel_service4_desc_word': '.service-card:nth-child(4) p, .service-card:nth-child(4) .service-description-container',
+            
+            // Témoignages
+            'isabel_testimonials_title_word': '.testimonials-section .section-title, .testimonials-section h2',
+            'isabel_testimonials_subtitle_word': '.testimonials-section .section-subtitle, .testimonials-section p',
+            
+            // CTA finale
+            'isabel_cta_title_word': '.cta-title, .cta-box h2',
+            'isabel_cta_text_word': '.cta-text, .cta-box p',
+            'isabel_cta_button_word': '.cta-button',
+            
+            // Modal
+            'isabel_modal_title_word': '.modal-title',
+            'isabel_modal_subtitle_word': '.modal-subtitle',
+            
+            // Header
+            'isabel_header_name_word': '.logo-name',
+            'isabel_header_subtitle_word': '.logo-subtitle',
+            
+            // Footer
+            'isabel_footer_name_word': '.footer h3',
+            'isabel_footer_description_word': '.footer p',
+            
+            // Pages de services - Coaching
+            'isabel_coaching_title_word': '.page-header h1',
+            'isabel_coaching_subtitle_word': '.page-header .subtitle',
+            'isabel_coaching_box1_title_word': '.coaching-box-1 h3',
+            'isabel_coaching_box1_text_word': '.coaching-box-1 p',
+            'isabel_coaching_box2_title_word': '.coaching-box-2 h3',
+            'isabel_coaching_box2_text_word': '.coaching-box-2 p',
+            'isabel_coaching_box3_title_word': '.coaching-box-3 h3',
+            'isabel_coaching_box3_text_word': '.coaching-box-3 p',
+            'isabel_coaching_box4_title_word': '.coaching-box-4 h3',
+            'isabel_coaching_box4_text_word': '.coaching-box-4 p',
+            'isabel_coaching_cta_word': '.cta-service',
+            
+            // Pages de services - VAE
+            'isabel_vae_title_word': '.page-header h1',
+            'isabel_vae_subtitle_word': '.page-header .subtitle',
+            'isabel_vae_box1_title_word': '.vae-box-1 h3',
+            'isabel_vae_box1_text_word': '.vae-box-1 p',
+            'isabel_vae_box2_title_word': '.vae-box-2 h3',
+            'isabel_vae_box2_text_word': '.vae-box-2 p',
+            'isabel_vae_box3_title_word': '.vae-box-3 h3',
+            'isabel_vae_box3_text_word': '.vae-box-3 p',
+            'isabel_vae_box4_title_word': '.vae-box-4 h3',
+            'isabel_vae_box4_text_word': '.vae-box-4 p',
+            'isabel_vae_cta_word': '.cta-service',
+            
+            // Pages de services - Hypnocoaching
+            'isabel_hypno_title_word': '.page-header h1',
+            'isabel_hypno_subtitle_word': '.page-header .subtitle',
+            'isabel_hypno_box1_title_word': '.hypno-box-1 h3',
+            'isabel_hypno_box1_text_word': '.hypno-box-1 p',
+            'isabel_hypno_box2_title_word': '.hypno-box-2 h3',
+            'isabel_hypno_box2_text_word': '.hypno-box-2 p',
+            'isabel_hypno_box3_title_word': '.hypno-box-3 h3',
+            'isabel_hypno_box3_text_word': '.hypno-box-3 p',
+            'isabel_hypno_box4_title_word': '.hypno-box-4 h3',
+            'isabel_hypno_box4_text_word': '.hypno-box-4 p',
+            'isabel_hypno_cta_word': '.cta-service',
+            
+            // Pages de services - Consultation
+            'isabel_consultation_title_word': '.page-header h1',
+            'isabel_consultation_subtitle_word': '.page-header .subtitle',
+            'isabel_consultation_box1_title_word': '.consultation-box-1 h3',
+            'isabel_consultation_box1_text_word': '.consultation-box-1 p',
+            'isabel_consultation_box2_title_word': '.consultation-box-2 h3',
+            'isabel_consultation_box2_text_word': '.consultation-box-2 p',
+            'isabel_consultation_box3_title_word': '.consultation-box-3 h3',
+            'isabel_consultation_box3_text_word': '.consultation-box-3 p',
+            'isabel_consultation_box4_title_word': '.consultation-box-4 h3',
+            'isabel_consultation_box4_text_word': '.consultation-box-4 p',
+            'isabel_consultation_cta_word': '.cta-service',
+            'isabel_consultation_highlight_word': '.consultation-highlight',
+            
+            // Qualiopi
+            'isabel_qualiopi_title_word': '.qualiopi-text h3',
+            'isabel_qualiopi_description_word': '.qualiopi-text p',
+            'isabel_qualiopi_number_word': '.qualiopi-number',
+            'isabel_qualiopi_date_word': '.qualiopi-date'
+        }
     };
 
-    // Services individuels
-    for (let i = 1; i <= 4; i++) {
-        previewElements[`isabel_service${i}_title`] = `.service-card:nth-child(${i}) h3`;
-        previewElements[`isabel_service${i}_desc`] = `.service-card:nth-child(${i}) p`;
-    }
-
     /**
-     * Fonction pour appliquer les styles en temps réel
+     * Initialisation du système de synchronisation
      */
-    function applyRealTimeStyles(settingBase, selector) {
-        // Texte
-        wp.customize(settingBase, function(value) {
-            value.bind(function(newval) {
-                $(selector).text(newval);
-            });
-        });
-
-        // Taille de police
-        wp.customize(settingBase + '_font_size', function(value) {
-            value.bind(function(newval) {
-                $(selector).css('font-size', newval + 'px');
-            });
-        });
-
-        // Gras
-        wp.customize(settingBase + '_bold', function(value) {
-            value.bind(function(newval) {
-                $(selector).css('font-weight', newval ? 'bold' : 'normal');
-            });
-        });
-
-        // Italique
-        wp.customize(settingBase + '_italic', function(value) {
-            value.bind(function(newval) {
-                $(selector).css('font-style', newval ? 'italic' : 'normal');
-            });
-        });
-
-        // Couleur
-        wp.customize(settingBase + '_color', function(value) {
-            value.bind(function(newval) {
-                $(selector).css('color', newval);
-            });
-        });
-
-        // Ombre de texte
-        wp.customize(settingBase + '_text_shadow', function(value) {
-            value.bind(function(newval) {
-                $(selector).css('text-shadow', newval ? '0 2px 4px rgba(0,0,0,0.3)' : 'none');
-            });
-        });
-
-        // Hauteur de ligne
-        wp.customize(settingBase + '_line_height', function(value) {
-            value.bind(function(newval) {
-                $(selector).css('line-height', newval);
-            });
-        });
-    }
-
-    /**
-     * Prévisualisation des images
-     */
-    function setupImagePreviews() {
-        // Image de profil principale
-        wp.customize('isabel_profile_image', function(value) {
-            value.bind(function(newval) {
-                if (newval) {
-                    $('.hero-profile-image, .mobile-profile-image').attr('src', newval);
-                    $('.hero-profile-placeholder, .mobile-profile-placeholder').hide();
-                    $('.hero-profile-image, .mobile-profile-image').show();
-                } else {
-                    $('.hero-profile-image, .mobile-profile-image').hide();
-                    $('.hero-profile-placeholder, .mobile-profile-placeholder').show();
-                }
-            });
-        });
-
-        // Image de fond hero
-        wp.customize('isabel_hero_background_image', function(value) {
-            value.bind(function(newval) {
-                if (newval) {
-                    $('.hero-floating').css('background-image', 'url(' + newval + ')');
-                    $('.hero-floating').addClass('has-bg-image').removeClass('no-bg-image');
-                } else {
-                    $('.hero-floating').css('background-image', 'none');
-                    $('.hero-floating').addClass('no-bg-image').removeClass('has-bg-image');
-                }
-            });
-        });
-
-        // Image de profil mobile
-        wp.customize('isabel_mobile_profile_image', function(value) {
-            value.bind(function(newval) {
-                if (newval) {
-                    $('.mobile-profile-image').attr('src', newval);
-                }
-            });
-        });
-
-        // Logo header
-        wp.customize('isabel_header_logo', function(value) {
-            value.bind(function(newval) {
-                if (newval) {
-                    $('.logo-image').attr('src', newval).show();
-                    $('.logo-placeholder').hide();
-                } else {
-                    $('.logo-image').hide();
-                    $('.logo-placeholder').show();
-                }
-            });
-        });
-
-        // Logo Qualiopi
-        wp.customize('isabel_qualiopi_logo', function(value) {
-            value.bind(function(newval) {
-                if (newval) {
-                    $('.qualiopi-logo img').attr('src', newval);
-                }
-            });
-        });
-    }
-
-    /**
-     * Prévisualisation de la typographie globale
-     */
-    function setupGlobalTypography() {
-        // Police principale
-        wp.customize('isabel_main_font_family', function(value) {
-            value.bind(function(newval) {
-                $('body').css('font-family', newval);
-            });
-        });
-
-        // Taille de base
-        wp.customize('isabel_base_font_size', function(value) {
-            value.bind(function(newval) {
-                $('body').css('font-size', newval + 'px');
-            });
-        });
-    }
-
-    /**
-     * Prévisualisation des couleurs
-     */
-    function setupColorPreviews() {
-        wp.customize('isabel_primary_color', function(value) {
-            value.bind(function(newval) {
-                // Mettre à jour la variable CSS
-                $(':root').get(0).style.setProperty('--rose-500', newval);
-                
-                // Appliquer aux éléments qui utilisent cette couleur
-                $('.service-icon, .author-avatar, .step-number').css('background-color', newval);
-                $('.service-card').css('border-color', newval);
-            });
-        });
-    }
-
-    /**
-     * Prévisualisation des éléments de contenu spéciaux
-     */
-    function setupSpecialPreviews() {
-        // Activation/désactivation Qualiopi
-        wp.customize('isabel_qualiopi_enable', function(value) {
-            value.bind(function(newval) {
-                if (newval) {
-                    $('.qualiopi-certification, .qualiopi-home-section').show();
-                } else {
-                    $('.qualiopi-certification, .qualiopi-home-section').hide();
-                }
-            });
-        });
-
-        // Images des boxes de services
-        for (let i = 1; i <= 4; i++) {
-            // Coaching
-            wp.customize(`isabel_coaching_box${i}_image`, function(value) {
-                value.bind(function(newval) {
-                    if (newval) {
-                        $(`.coaching-box-${i} .full-box-image-fixed`).attr('src', newval).show();
-                        $(`.coaching-box-${i} .full-box-placeholder-fixed`).hide();
-                    }
-                });
-            });
-
-            // VAE
-            wp.customize(`isabel_vae_box${i}_image`, function(value) {
-                value.bind(function(newval) {
-                    if (newval) {
-                        $(`.vae-box-${i} .full-box-image-fixed`).attr('src', newval).show();
-                        $(`.vae-box-${i} .full-box-placeholder-fixed`).hide();
-                    }
-                });
-            });
-
-            // Hypnocoaching
-            wp.customize(`isabel_hypno_box${i}_image`, function(value) {
-                value.bind(function(newval) {
-                    if (newval) {
-                        $(`.hypno-box-${i} .full-box-image-fixed`).attr('src', newval).show();
-                        $(`.hypno-box-${i} .full-box-placeholder-fixed`).hide();
-                    }
-                });
-            });
-        }
-    }
-
-    /**
-     * Prévisualisation avancée pour les éléments avec formatage multiple
-     */
-    function setupAdvancedPreviews() {
-        // Boutons avec changement de texte et style
-        wp.customize('isabel_main_button_text', function(value) {
-            value.bind(function(newval) {
-                $('.cta-main span:last-child, .btn-cta').text(newval);
-            });
-        });
-
-        wp.customize('isabel_cta_button', function(value) {
-            value.bind(function(newval) {
-                $('.cta-button').text(newval);
-            });
-        });
-
-        // Badges avec style spécial
-        wp.customize('isabel_hero_badge', function(value) {
-            value.bind(function(newval) {
-                $('.hero-badge').contents().filter(function() {
-                    return this.nodeType === 3; // Text nodes only
-                }).first().replaceWith(newval);
-            });
-        });
-    }
-
-    /**
-     * Fonction pour créer des effets visuels lors des changements
-     */
-    function addVisualFeedback() {
-        // Effet de mise en surbrillance lors des changements
-        function highlightElement(selector) {
-            $(selector).addClass('customizer-highlight');
-            setTimeout(function() {
-                $(selector).removeClass('customizer-highlight');
-            }, 1000);
+    function initSyncSystem() {
+        if (typeof wp === 'undefined' || !wp.customize) {
+            console.log('❌ WordPress Customizer non disponible');
+            return;
         }
 
-        // Ajouter les styles pour l'effet de surbrillance
-        $('<style>')
-            .prop('type', 'text/css')
-            .html(`
-                .customizer-highlight {
-                    outline: 3px solid #0073aa !important;
-                    outline-offset: 2px !important;
-                    transition: outline 0.3s ease !important;
-                }
-            `)
-            .appendTo('head');
-
-        // Appliquer l'effet aux changements
-        Object.keys(previewElements).forEach(function(settingBase) {
-            const selector = previewElements[settingBase];
-            
-            wp.customize(settingBase, function(value) {
-                value.bind(function() {
-                    highlightElement(selector);
-                });
-            });
-        });
-    }
-
-    /**
-     * Prévisualisation responsive
-     */
-    function setupResponsivePreviews() {
-        // Ajuster les prévisualisations selon la taille d'écran
-        function adjustForScreenSize() {
-            const width = $(window).width();
-            
-            if (width < 768) {
-                // Mode mobile
-                $('.hero-right').hide();
-                $('.mobile-profile-section').show();
-            } else {
-                // Mode desktop/tablette
-                $('.hero-right').show();
-                $('.mobile-profile-section').hide();
-            }
-        }
-
-        $(window).on('resize', adjustForScreenSize);
-        adjustForScreenSize(); // Appel initial
-    }
-
-    /**
-     * Messages informatifs dans le customizer
-     */
-    function setupCustomizerMessages() {
-        // Ajouter des messages d'aide
+        IsabelSync.previewWindow = window.parent;
+        
+        console.log('🔄 Initialisation du système de synchronisation Isabel...');
+        
+        // Attendre que le customizer soit prêt
         wp.customize.bind('ready', function() {
-            // Message de bienvenue
-            wp.customize.notifications.add('isabel_welcome', new wp.customize.Notification('isabel_welcome', {
-                type: 'info',
-                message: '🎨 Bienvenue dans le customizer avancé Isabel ! Tous vos changements sont visibles en temps réel.'
-            }));
-
-            // Conseils d'utilisation
-            setTimeout(function() {
-                wp.customize.notifications.add('isabel_tips', new wp.customize.Notification('isabel_tips', {
-                    type: 'success',
-                    message: '💡 Astuce : Utilisez les curseurs pour ajuster les tailles de police et voyez le résultat instantanément !'
-                }));
-            }, 3000);
-
-            // Supprimer les messages après un délai
-            setTimeout(function() {
-                wp.customize.notifications.remove('isabel_welcome');
-                wp.customize.notifications.remove('isabel_tips');
-            }, 10000);
+            setupRealtimeSync();
+            setupWordEditorSync();
+            console.log('✅ Système de synchronisation Isabel prêt !');
         });
     }
 
     /**
-     * Sauvegarde automatique des modifications
+     * Configuration de la synchronisation temps réel
      */
-    function setupAutoSave() {
-        let saveTimeout;
+    function setupRealtimeSync() {
+        // Pour chaque setting dans notre mapping
+        Object.keys(IsabelSync.settingsMap).forEach(function(settingId) {
+            const selectors = IsabelSync.settingsMap[settingId];
+            
+            // Écouter les changements du setting
+            wp.customize(settingId, function(setting) {
+                setting.bind(function(newValue) {
+                    updatePreviewContent(selectors, newValue, settingId);
+                });
+            });
+        });
+
+        // Synchronisation des images
+        setupImageSync();
         
-        wp.customize.bind('change', function() {
-            clearTimeout(saveTimeout);
+        // Synchronisation des couleurs
+        setupColorSync();
+        
+        // Synchronisation des options on/off
+        setupToggleSync();
+    }
+
+    /**
+     * Mise à jour du contenu dans le preview
+     */
+    function updatePreviewContent(selectors, newValue, settingId) {
+        if (!newValue) return;
+
+        const selectorArray = selectors.split(',').map(s => s.trim());
+        
+        selectorArray.forEach(function(selector) {
+            const elements = $(selector);
             
-            // Afficher un indicateur de sauvegarde
-            wp.customize.notifications.add('isabel_saving', new wp.customize.Notification('isabel_saving', {
-                type: 'info',
-                message: '💾 Sauvegarde automatique en cours...'
-            }));
-            
-            saveTimeout = setTimeout(function() {
-                wp.customize.notifications.remove('isabel_saving');
-                wp.customize.notifications.add('isabel_saved', new wp.customize.Notification('isabel_saved', {
-                    type: 'success',
-                    message: '✅ Modifications sauvegardées !'
-                }));
+            if (elements.length > 0) {
+                // Déterminer le type d'élément et la méthode d'update
+                elements.each(function() {
+                    const $el = $(this);
+                    
+                    // Pour les containers qui peuvent contenir du HTML formaté
+                    if ($el.hasClass('service-title-container') || 
+                        $el.hasClass('service-description-container') ||
+                        $el.hasClass('profile-info') ||
+                        $el.hasClass('profile-subtitle') ||
+                        $el.hasClass('intro-text') ||
+                        $el.hasClass('cta-service') ||
+                        selector.includes('word')) {
+                        
+                        $el.html(newValue);
+                        
+                    } else if ($el.is('input, textarea, select')) {
+                        // Pour les champs de formulaire
+                        $el.val(newValue);
+                        
+                    } else {
+                        // Pour les autres éléments, utiliser text() pour éviter l'injection HTML
+                        const textContent = $('<div>').html(newValue).text();
+                        $el.text(textContent);
+                    }
+                    
+                    // Effet visuel pour indiquer la mise à jour
+                    addUpdateEffect($el, settingId);
+                });
                 
-                setTimeout(function() {
-                    wp.customize.notifications.remove('isabel_saved');
-                }, 2000);
-            }, 1000);
+                if (IsabelSync.debug) {
+                    console.log(`🔄 Mis à jour: ${selector} = ${newValue.substring(0, 50)}...`);
+                }
+            } else {
+                if (IsabelSync.debug) {
+                    console.warn(`⚠️ Sélecteur non trouvé: ${selector}`);
+                }
+            }
         });
     }
 
     /**
-     * Initialisation principale
+     * Synchronisation des images
      */
-    function initCustomizerPreview() {
-        console.log('🎨 Initialisation du preview customizer Isabel...');
+    function setupImageSync() {
+        const imageSettings = {
+            'isabel_profile_image': '.hero-profile-image, .mobile-profile-image',
+            'isabel_mobile_profile_image': '.mobile-profile-image',
+            'isabel_hero_background_image': '.hero-floating',
+            'isabel_header_logo': '.logo-image',
+            'isabel_qualiopi_logo': '.qualiopi-logo img'
+        };
 
-        // Configurer toutes les prévisualisations
-        Object.keys(previewElements).forEach(function(settingBase) {
-            const selector = previewElements[settingBase];
-            applyRealTimeStyles(settingBase, selector);
+        // Images des pages de services
+        for (let i = 1; i <= 4; i++) {
+            imageSettings[`isabel_coaching_box${i}_image`] = `.coaching-box-${i} .full-box-image-fixed`;
+            imageSettings[`isabel_vae_box${i}_image`] = `.vae-box-${i} .full-box-image-fixed`;
+            imageSettings[`isabel_hypno_box${i}_image`] = `.hypno-box-${i} .full-box-image-fixed`;
+            imageSettings[`isabel_consultation_box${i}_image`] = `.consultation-box-${i} .full-box-image-fixed`;
+        }
+
+        Object.keys(imageSettings).forEach(function(settingId) {
+            wp.customize(settingId, function(setting) {
+                setting.bind(function(newValue) {
+                    updateImagePreview(imageSettings[settingId], newValue, settingId);
+                });
+            });
         });
-
-        // Configurer les autres types de prévisualisations
-        setupImagePreviews();
-        setupGlobalTypography();
-        setupColorPreviews();
-        setupSpecialPreviews();
-        setupAdvancedPreviews();
-        setupResponsivePreviews();
-        
-        // Fonctionnalités avancées
-        addVisualFeedback();
-        setupCustomizerMessages();
-        setupAutoSave();
-
-        console.log('✅ Preview customizer Isabel initialisé !');
     }
 
-    // Lancer l'initialisation quand le customizer est prêt
-    wp.customize.bind('ready', function() {
-        initCustomizerPreview();
+    /**
+     * Mise à jour des images dans le preview
+     */
+    function updateImagePreview(selectors, newValue, settingId) {
+        const selectorArray = selectors.split(',').map(s => s.trim());
+        
+        selectorArray.forEach(function(selector) {
+            const elements = $(selector);
+            
+            if (elements.length > 0) {
+                if (settingId === 'isabel_hero_background_image') {
+                    // Image de fond spéciale
+                    if (newValue) {
+                        $(':root').get(0).style.setProperty('--hero-bg-image', `url(${newValue})`);
+                        $('.hero-floating').addClass('has-bg-image').removeClass('no-bg-image');
+                    } else {
+                        $('.hero-floating').addClass('no-bg-image').removeClass('has-bg-image');
+                    }
+                } else {
+                    // Images normales
+                    elements.each(function() {
+                        const $el = $(this);
+                        
+                        if (newValue) {
+                            if ($el.is('img')) {
+                                $el.attr('src', newValue).show();
+                            } else {
+                                $el.css('background-image', `url(${newValue})`);
+                            }
+                            
+                            // Masquer les placeholders
+                            $el.siblings('.placeholder, .logo-placeholder, .full-box-placeholder-fixed').hide();
+                        } else {
+                            if ($el.is('img')) {
+                                $el.hide();
+                            }
+                            
+                            // Afficher les placeholders
+                            $el.siblings('.placeholder, .logo-placeholder, .full-box-placeholder-fixed').show();
+                        }
+                        
+                        addUpdateEffect($el, settingId);
+                    });
+                }
+                
+                if (IsabelSync.debug) {
+                    console.log(`🖼️ Image mise à jour: ${selector}`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Synchronisation des couleurs
+     */
+    function setupColorSync() {
+        const colorSettings = {
+            'isabel_primary_color': '--rose-500',
+            'isabel_secondary_color': '--rose-700',
+            'isabel_text_color': '--text-dark',
+            'isabel_text_light_color': '--text-light'
+        };
+
+        Object.keys(colorSettings).forEach(function(settingId) {
+            wp.customize(settingId, function(setting) {
+                setting.bind(function(newValue) {
+                    const cssVar = colorSettings[settingId];
+                    $(':root').get(0).style.setProperty(cssVar, newValue);
+                    
+                    if (IsabelSync.debug) {
+                        console.log(`🎨 Couleur mise à jour: ${cssVar} = ${newValue}`);
+                    }
+                });
+            });
+        });
+    }
+
+    /**
+     * Synchronisation des options on/off
+     */
+    function setupToggleSync() {
+        const toggleSettings = {
+            'isabel_qualiopi_enable': '.qualiopi-certification, .qualiopi-home-section',
+            'isabel_show_dragonfly': '.dragonfly',
+            'isabel_alert_bar_enable': '.top-alert'
+        };
+
+        Object.keys(toggleSettings).forEach(function(settingId) {
+            wp.customize(settingId, function(setting) {
+                setting.bind(function(newValue) {
+                    const elements = $(toggleSettings[settingId]);
+                    
+                    if (newValue) {
+                        elements.show();
+                    } else {
+                        elements.hide();
+                    }
+                    
+                    if (IsabelSync.debug) {
+                        console.log(`🔧 Toggle mis à jour: ${settingId} = ${newValue}`);
+                    }
+                });
+            });
+        });
+    }
+
+    /**
+     * Synchronisation spéciale pour les éditeurs Word-like
+     */
+    function setupWordEditorSync() {
+        // Écouter les changements dans les éditeurs Word-like
+        $('.isabel-word-editor').on('input', function() {
+            const settingId = $(this).data('setting');
+            const content = $(this).html();
+            
+            if (settingId && wp.customize(settingId)) {
+                // Délai pour éviter trop de mises à jour
+                clearTimeout(IsabelSync.updateTimer);
+                IsabelSync.updateTimer = setTimeout(function() {
+                    wp.customize(settingId).set(content);
+                }, 500);
+            }
+        });
+
+        // Synchronisation bidirectionnelle
+        Object.keys(IsabelSync.settingsMap).forEach(function(settingId) {
+            wp.customize(settingId, function(setting) {
+                setting.bind(function(newValue) {
+                    // Mettre à jour l'éditeur si la valeur vient d'ailleurs
+                    const editor = $(`.isabel-word-editor[data-setting="${settingId}"]`);
+                    if (editor.length && editor.html() !== newValue) {
+                        editor.html(newValue);
+                    }
+                });
+            });
+        });
+    }
+
+    /**
+     * Effet visuel pour indiquer les mises à jour
+     */
+    function addUpdateEffect($element, settingId) {
+        $element.addClass('isabel-updating');
+        
+        setTimeout(function() {
+            $element.removeClass('isabel-updating');
+        }, 600);
+    }
+
+    /**
+     * Synchronisation forcée pour résoudre les désync
+     */
+    function forceSyncAll() {
+        if (!wp.customize) return;
+
+        console.log('🔄 Synchronisation forcée de tous les éléments...');
+        
+        Object.keys(IsabelSync.settingsMap).forEach(function(settingId) {
+            const setting = wp.customize(settingId);
+            if (setting) {
+                const value = setting.get();
+                if (value) {
+                    updatePreviewContent(IsabelSync.settingsMap[settingId], value, settingId);
+                }
+            }
+        });
+        
+        console.log('✅ Synchronisation forcée terminée');
+    }
+
+    /**
+     * Fonction de debug pour diagnostiquer les problèmes
+     */
+    function debugSync() {
+        console.group('🔍 Debug Synchronisation Isabel');
+        
+        console.log('Settings disponibles:');
+        Object.keys(IsabelSync.settingsMap).forEach(function(settingId) {
+            const setting = wp.customize ? wp.customize(settingId) : null;
+            const value = setting ? setting.get() : 'N/A';
+            const elements = $(IsabelSync.settingsMap[settingId]);
+            
+            console.log(`${settingId}:`, {
+                value: value ? value.substring(0, 50) + '...' : 'VIDE',
+                elements: elements.length,
+                selectors: IsabelSync.settingsMap[settingId]
+            });
+        });
+        
+        console.groupEnd();
+    }
+
+    /**
+     * Correction automatique des problèmes courants
+     */
+    function autoFixCommonIssues() {
+        // Corriger les containers vides
+        $('.service-title-container, .service-description-container').each(function() {
+            const $container = $(this);
+            if ($container.html().trim() === '') {
+                const fallback = $container.hasClass('service-title-container') ? 
+                    '<h3>Titre du service</h3>' : 
+                    '<p>Description du service</p>';
+                $container.html(fallback);
+            }
+        });
+
+        // Corriger les images manquantes
+        $('.hero-profile-image, .mobile-profile-image').each(function() {
+            const $img = $(this);
+            if (!$img.attr('src') || $img.attr('src') === '') {
+                $img.hide();
+                $img.siblings('.placeholder, .hero-profile-placeholder').show();
+            }
+        });
+
+        // Corriger les éditeurs Word vides
+        $('.isabel-word-editor').each(function() {
+            const $editor = $(this);
+            if ($editor.html().trim() === '') {
+                $editor.html('<p>Contenu à personnaliser...</p>');
+            }
+        });
+    }
+
+    /**
+     * API publique pour le debugging
+     */
+    window.IsabelSyncDebug = {
+        forceSync: forceSyncAll,
+        debug: debugSync,
+        autoFix: autoFixCommonIssues,
+        settings: IsabelSync.settingsMap,
+        status: function() {
+            return {
+                isActive: typeof wp !== 'undefined' && !!wp.customize,
+                settingsCount: Object.keys(IsabelSync.settingsMap).length,
+                previewWindow: !!IsabelSync.previewWindow
+            };
+        }
+    };
+
+    // CSS pour les effets visuels
+    const syncStyles = `
+        <style id="isabel-sync-styles">
+        .isabel-updating {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .isabel-updating::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(228, 167, 245, 0.4), transparent);
+            animation: isabel-update-sweep 0.6s ease-out;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        @keyframes isabel-update-sweep {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .service-title-container,
+        .service-description-container,
+        .profile-info,
+        .profile-subtitle,
+        .intro-text {
+            transition: all 0.3s ease;
+            min-height: 1em;
+        }
+        
+        .service-title-container:empty::before,
+        .service-description-container:empty::before {
+            content: 'Contenu à personnaliser...';
+            color: #999;
+            font-style: italic;
+        }
+        </style>
+    `;
+
+    // Initialisation
+    $(document).ready(function() {
+        // Ajouter les styles
+        $('head').append(syncStyles);
+        
+        // Initialiser le système
+        initSyncSystem();
+        
+        // Auto-fix au chargement
+        setTimeout(autoFixCommonIssues, 1000);
+        
+        // Synchronisation forcée toutes les 5 secondes si en mode debug
+        if (IsabelSync.debug && typeof wp !== 'undefined' && wp.customize) {
+            setInterval(function() {
+                if ($(document).find('.isabel-updating').length === 0) {
+                    forceSyncAll();
+                }
+            }, 5000);
+        }
+        
+        console.log('🎨 Système de synchronisation Isabel chargé !');
+        console.log('💡 Utilisez window.IsabelSyncDebug pour débugger');
     });
 
-    // Support pour les changements de device (responsive)
-    wp.customize.previewedDevice.bind(function(device) {
-        $('body').removeClass('preview-desktop preview-tablet preview-mobile')
-                 .addClass('preview-' + device);
+    // Gestion des erreurs
+    $(window).on('error', function(e) {
+        if (e.originalEvent.message.includes('Isabel') || e.originalEvent.message.includes('customize')) {
+            console.error('❌ Erreur dans le système de synchronisation:', e.originalEvent.message);
+            console.log('🔧 Tentative de correction automatique...');
+            autoFixCommonIssues();
+        }
     });
 
 })(jQuery);

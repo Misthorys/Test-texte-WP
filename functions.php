@@ -421,5 +421,230 @@ add_action('admin_init', function() {
         }
     }
 });
+// ========================================
+// CORRECTION DES ÉDITEURS WORD-LIKE - SYNCHRONISATION
+// ========================================
+
+/**
+ * Fonction corrigée pour afficher le contenu des éditeurs Word-like
+ * avec fallback automatique vers les anciennes versions
+ */
+function isabel_display_word_editor_content_fixed($setting_id, $default = '', $fallback_setting = '') {
+    // 1. Essayer d'abord l'éditeur Word-like
+    $word_content = get_theme_mod($setting_id, '');
+    
+    if (!empty($word_content) && $word_content !== $default) {
+        echo wp_kses_post($word_content);
+        return;
+    }
+    
+    // 2. Essayer le setting de fallback (ancienne version)
+    if (!empty($fallback_setting)) {
+        $fallback_content = get_theme_mod($fallback_setting, '');
+        if (!empty($fallback_content)) {
+            // Convertir le texte simple en HTML si nécessaire
+            if (!preg_match('/<[^>]*>/', $fallback_content)) {
+                $fallback_content = '<p>' . esc_html($fallback_content) . '</p>';
+            }
+            echo wp_kses_post($fallback_content);
+            return;
+        }
+    }
+    
+    // 3. Utiliser la valeur par défaut
+    if (!empty($default)) {
+        echo wp_kses_post($default);
+    }
+}
+
+/**
+ * Amélioration de la fonction d'affichage existante
+ */
+if (!function_exists('isabel_display_word_editor_content_enhanced')) {
+    function isabel_display_word_editor_content_enhanced($setting_id, $default = '') {
+        $content = get_theme_mod($setting_id, $default);
+        
+        // Nettoyage et sécurisation du contenu
+        if (!empty($content)) {
+            echo wp_kses_post($content);
+        } else {
+            echo wp_kses_post($default);
+        }
+    }
+}
+
+/**
+ * Force le rechargement du customizer preview lors des changements
+ */
+function isabel_force_customizer_refresh() {
+    add_action('customize_preview_init', function() {
+        wp_enqueue_script(
+            'isabel-customizer-sync',
+            get_template_directory_uri() . '/js/customizer-preview.js',
+            array('jquery', 'customize-preview'),
+            '2.0.0',
+            true
+        );
+    });
+}
+add_action('init', 'isabel_force_customizer_refresh');
+
+/**
+ * AJAX pour synchronisation en temps réel
+ */
+function isabel_sync_customizer_content() {
+    if (!current_user_can('customize')) {
+        wp_die('Permissions insuffisantes');
+    }
+    
+    $setting_id = sanitize_text_field($_POST['setting_id']);
+    $content = wp_kses_post($_POST['content']);
+    
+    set_theme_mod($setting_id, $content);
+    
+    wp_send_json_success(array(
+        'setting_id' => $setting_id,
+        'content' => $content,
+        'message' => 'Contenu synchronisé'
+    ));
+}
+add_action('wp_ajax_isabel_sync_content', 'isabel_sync_customizer_content');
+
+/**
+ * Correction automatique des settings vides
+ */
+function isabel_fix_empty_settings() {
+    $critical_settings = array(
+        'isabel_main_name_word' => '<h1 style="font-size: 48px; font-weight: bold; color: #2d1b3d;">Isabel GONCALVES</h1>',
+        'isabel_subtitle_word' => '<p style="font-size: 24px; color: #2d1b3d; font-style: italic;">Coach Certifiée &amp; Hypnocoach</p>',
+        'isabel_services_title_word' => '<h2 style="font-size: 36px; font-weight: bold; color: #2d1b3d; text-align: center;">Mes Accompagnements Sur Mesure</h2>',
+        'isabel_cta_title_word' => '<h2 style="font-size: 32px; font-weight: bold; color: #ffffff; text-align: center;">Prêt(e) à Commencer Votre Transformation ?</h2>'
+    );
+    
+    foreach ($critical_settings as $setting_id => $default_value) {
+        $current_value = get_theme_mod($setting_id, '');
+        if (empty($current_value)) {
+            set_theme_mod($setting_id, $default_value);
+        }
+    }
+}
+add_action('customize_save_after', 'isabel_fix_empty_settings');
+
+/**
+ * Debug function pour vérifier les settings
+ */
+function isabel_debug_customizer_settings() {
+    if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options')) {
+        if (isset($_GET['isabel_debug_customizer'])) {
+            $word_settings = array(
+                'isabel_main_name_word',
+                'isabel_subtitle_word', 
+                'isabel_intro_text_word',
+                'isabel_services_title_word',
+                'isabel_service1_title_word',
+                'isabel_service2_title_word',
+                'isabel_service3_title_word',
+                'isabel_service4_title_word',
+                'isabel_cta_title_word'
+            );
+            
+            echo '<div style="background: white; padding: 20px; margin: 20px; border: 1px solid #ccc; position: fixed; top: 50px; right: 20px; z-index: 99999; max-width: 400px; max-height: 80vh; overflow-y: auto;">';
+            echo '<h3>🔍 Debug Customizer Settings</h3>';
+            
+            foreach ($word_settings as $setting) {
+                $value = get_theme_mod($setting, '');
+                $status = !empty($value) ? '✅' : '❌';
+                $preview = !empty($value) ? substr(strip_tags($value), 0, 50) . '...' : 'VIDE';
+                
+                echo "<div style='margin: 10px 0; padding: 10px; border: 1px solid #eee;'>";
+                echo "<strong>{$status} {$setting}</strong><br>";
+                echo "<small>{$preview}</small>";
+                echo "</div>";
+            }
+            
+            echo '<button onclick="this.parentElement.style.display=\'none\'" style="background: #ccc; border: none; padding: 5px 10px; cursor: pointer;">Fermer</button>';
+            echo '</div>';
+        }
+    }
+}
+add_action('wp_footer', 'isabel_debug_customizer_settings');
+
+/**
+ * Amélioration du script de preview du customizer
+ */
+function isabel_improved_customizer_preview() {
+    if (is_customize_preview()) {
+        ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Forcer la synchronisation après le chargement
+            if (typeof wp !== 'undefined' && wp.customize) {
+                wp.customize.bind('ready', function() {
+                    console.log('🔄 Customizer prêt - Forçage de la synchronisation...');
+                    
+                    // Déclencher manuellement la synchronisation de tous les éléments
+                    setTimeout(function() {
+                        if (typeof window.IsabelSyncDebug !== 'undefined') {
+                            window.IsabelSyncDebug.forceSync();
+                        }
+                    }, 1000);
+                });
+            }
+        });
+        </script>
+        <?php
+    }
+}
+add_action('wp_footer', 'isabel_improved_customizer_preview');
+
+/**
+ * Corriger la priorité des hooks de customizer
+ */
+function isabel_fix_customizer_priority() {
+    // S'assurer que notre customizer se charge en dernier
+    remove_action('customize_register', 'isabel_customize_register');
+    add_action('customize_register', 'isabel_customize_register', 999);
+}
+add_action('after_setup_theme', 'isabel_fix_customizer_priority');
+
+/**
+ * Auto-migration des anciennes valeurs vers les nouveaux éditeurs
+ */
+function isabel_auto_migrate_settings() {
+    $migrations = array(
+        'isabel_main_name' => 'isabel_main_name_word',
+        'isabel_subtitle' => 'isabel_subtitle_word',
+        'isabel_intro_text' => 'isabel_intro_text_word',
+        'isabel_services_title' => 'isabel_services_title_word',
+        'isabel_service1_title' => 'isabel_service1_title_word',
+        'isabel_service2_title' => 'isabel_service2_title_word',
+        'isabel_service3_title' => 'isabel_service3_title_word',
+        'isabel_service4_title' => 'isabel_service4_title_word',
+        'isabel_cta_title' => 'isabel_cta_title_word'
+    );
+    
+    $migrated = false;
+    foreach ($migrations as $old_setting => $new_setting) {
+        $old_value = get_theme_mod($old_setting, '');
+        $new_value = get_theme_mod($new_setting, '');
+        
+        // Si l'ancien existe et le nouveau est vide
+        if (!empty($old_value) && empty($new_value)) {
+            // Convertir en HTML formaté
+            $html_value = '<p>' . esc_html($old_value) . '</p>';
+            if ($old_setting === 'isabel_main_name') {
+                $html_value = '<h1>' . esc_html($old_value) . '</h1>';
+            }
+            
+            set_theme_mod($new_setting, $html_value);
+            $migrated = true;
+        }
+    }
+    
+    if ($migrated) {
+        error_log('Isabel: Auto-migration des settings effectuée');
+    }
+}
+add_action('wp_loaded', 'isabel_auto_migrate_settings');
 
 ?>

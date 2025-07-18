@@ -66,17 +66,17 @@
       
       <!-- Titre principal depuis l'éditeur Word-like -->
       <div class="profile-info">
-        <?php isabel_display_word_editor_content('isabel_main_name_word', '<h1 style="font-size: 48px; font-weight: bold; color: #2d1b3d;">Isabel GONCALVES</h1>'); ?>
+        <?php isabel_display_word_editor_content_fixed('isabel_main_name_word', '<h1 style="font-size: 48px; font-weight: bold; color: #2d1b3d;">Isabel GONCALVES</h1>'); ?>
       </div>
       
       <!-- Sous-titre depuis l'éditeur Word-like -->
       <div class="profile-subtitle">
-        <?php isabel_display_word_editor_content('isabel_subtitle_word', '<p style="font-size: 24px; color: #2d1b3d; font-style: italic;">Coach Certifiée &amp; Hypnocoach</p>'); ?>
+        <?php isabel_display_word_editor_content_fixed('isabel_subtitle_word', '<p style="font-size: 24px; color: #2d1b3d; font-style: italic;">Coach Certifiée &amp; Hypnocoach</p>'); ?>
       </div>
       
       <!-- Texte d'introduction depuis l'éditeur Word-like -->
       <div class="intro-text">
-        <?php isabel_display_word_editor_content('isabel_intro_text_word', '<p style="font-size: 18px; line-height: 1.7; color: #2d1b3d;">Bienvenue dans votre espace de <strong>transformation personnelle</strong> ! Je vous accompagne avec <em>bienveillance</em> vers l\'épanouissement de votre potentiel grâce au coaching, à la VAE et à l\'hypnocoaching.</p>'); ?>
+        <?php isabel_display_word_editor_content_fixed('isabel_intro_text_word', '<p style="font-size: 18px; line-height: 1.7; color: #2d1b3d;">Bienvenue dans votre espace de <strong>transformation personnelle</strong> ! Je vous accompagne avec <em>bienveillance</em> vers l\'épanouissement de votre potentiel grâce au coaching, à la VAE et à l\'hypnocoaching.</p>'); ?>
       </div>
       
       <div class="hero-cta">
@@ -125,9 +125,9 @@
   <div class="section-container">
     
     <!-- Titre et sous-titre depuis les éditeurs Word-like -->
-    <?php isabel_display_word_editor_content('isabel_services_title_word', '<h2 style="font-size: 36px; font-weight: bold; color: #2d1b3d; text-align: center;">Mes Accompagnements Sur Mesure</h2>'); ?>
+    <?php isabel_display_word_editor_content_fixed('isabel_services_title_word', '<h2 style="font-size: 36px; font-weight: bold; color: #2d1b3d; text-align: center;">Mes Accompagnements Sur Mesure</h2>'); ?>
     
-    <?php isabel_display_word_editor_content('isabel_services_subtitle_word', '<p style="font-size: 18px; color: #6b5b73; text-align: center; font-style: italic;">Quatre approches complémentaires pour révéler votre potentiel et atteindre vos objectifs personnels et professionnels.</p>'); ?>
+    <?php isabel_display_word_editor_content_fixed('isabel_services_subtitle_word', '<p style="font-size: 18px; color: #6b5b73; text-align: center; font-style: italic;">Quatre approches complémentaires pour révéler votre potentiel et atteindre vos objectifs personnels et professionnels.</p>'); ?>
 
     <div class="services-grid">
       <?php for ($i = 1; $i <= 4; $i++): ?>
@@ -159,12 +159,12 @@
           
           <!-- Titre du service depuis l'éditeur Word-like -->
           <div class="service-title-container">
-            <?php isabel_display_word_editor_content("isabel_service{$i}_title_word", $default_titles[$i]); ?>
+            <?php isabel_display_word_editor_content_fixed("isabel_service{$i}_title_word", $default_titles[$i]); ?>
           </div>
           
           <!-- Description du service depuis l'éditeur Word-like -->
           <div class="service-description-container">
-            <?php isabel_display_word_editor_content("isabel_service{$i}_desc_word", $default_descriptions[$i]); ?>
+            <?php isabel_display_word_editor_content_fixed("isabel_service{$i}_desc_word", $default_descriptions[$i]); ?>
           </div>
           
           <div class="service-arrow">→</div>
@@ -179,10 +179,10 @@
   <div class="section-container">
     
     <!-- Titre depuis l'éditeur Word-like -->
-    <?php isabel_display_word_editor_content('isabel_testimonials_title_word', '<h2 style="font-size: 36px; font-weight: bold; color: #2d1b3d; text-align: center;">Ce que disent mes <span style="color: #c47dd9;">clients</span></h2>'); ?>
+    <?php isabel_display_word_editor_content_fixed('isabel_testimonials_title_word', '<h2 style="font-size: 36px; font-weight: bold; color: #2d1b3d; text-align: center;">Ce que disent mes <span style="color: #c47dd9;">clients</span></h2>'); ?>
     
     <!-- Sous-titre depuis l'éditeur Word-like -->
-    <?php isabel_display_word_editor_content('isabel_testimonials_subtitle_word', '<p style="font-size: 18px; color: #6b5b73; text-align: center; font-style: italic;">Découvrez les témoignages de personnes qui ont <strong>transformé leur vie</strong> grâce à un accompagnement personnalisé.</p>'); ?>
+    <?php isabel_display_word_editor_content_fixed('isabel_testimonials_subtitle_word', '<p style="font-size: 18px; color: #6b5b73; text-align: center; font-style: italic;">Découvrez les témoignages de personnes qui ont <strong>transformé leur vie</strong> grâce à un accompagnement personnalisé.</p>'); ?>
 
     <div class="testimonials-grid">
       <?php
@@ -267,10 +267,10 @@
     <div class="cta-box">
       
       <!-- Titre CTA depuis l'éditeur Word-like -->
-      <?php isabel_display_word_editor_content('isabel_cta_title_word', '<h2 style="font-size: 32px; font-weight: bold; color: #ffffff; text-align: center;">Prêt(e) à <span style="color: #ffff00;">Commencer</span> Votre Transformation ?</h2>'); ?>
+      <?php isabel_display_word_editor_content_fixed('isabel_cta_title_word', '<h2 style="font-size: 32px; font-weight: bold; color: #ffffff; text-align: center;">Prêt(e) à <span style="color: #ffff00;">Commencer</span> Votre Transformation ?</h2>'); ?>
       
       <!-- Texte CTA depuis l'éditeur Word-like -->
-      <?php isabel_display_word_editor_content('isabel_cta_text_word', '<p style="font-size: 18px; color: #ffffff; text-align: center; line-height: 1.6;"><strong>Contactez-moi dès maintenant</strong> pour discuter de vos objectifs et découvrir comment je peux vous accompagner dans votre <em>transformation</em>.</p>'); ?>
+      <?php isabel_display_word_editor_content_fixed('isabel_cta_text_word', '<p style="font-size: 18px; color: #ffffff; text-align: center; line-height: 1.6;"><strong>Contactez-moi dès maintenant</strong> pour discuter de vos objectifs et découvrir comment je peux vous accompagner dans votre <em>transformation</em>.</p>'); ?>
       
       <button class="cta-button" onclick="openPopup()">
         Prendre rendez-vous
