@@ -40,10 +40,10 @@ function isabel_theme_scripts() {
 add_action('wp_enqueue_scripts', 'isabel_theme_scripts');
 
 // ========================================
-// INCLUSIONS DES FICHIERS ORGANISÉS
+// INCLUSIONS DES FICHIERS ORGANISÉS - NOUVEAU SYSTÈME MODULAIRE
 // ========================================
 
-// Charger le customizer (toutes les options de personnalisation)
+// Charger le nouveau customizer modulaire (toutes les options de personnalisation)
 require_once get_template_directory() . '/inc/customizer.php';
 
 // Charger la gestion des contacts
@@ -79,6 +79,46 @@ function isabel_get_profile_image($size = 'full', $css_class = '') {
 }
 
 // ========================================
+// FONCTIONS DE COMPATIBILITÉ POUR LES NOUVEAUX CUSTOMIZERS
+// ========================================
+
+/**
+ * Fonction pour récupérer le contenu des éditeurs Word-like
+ * (définie ici pour compatibilité si pas encore chargée)
+ */
+if (!function_exists('isabel_get_word_editor_content')) {
+    function isabel_get_word_editor_content($setting_id, $default = '') {
+        $content = get_theme_mod($setting_id, $default);
+        return wp_kses_post($content);
+    }
+}
+
+/**
+ * Fonction pour afficher le contenu des éditeurs Word-like
+ */
+if (!function_exists('isabel_display_word_editor_content')) {
+    function isabel_display_word_editor_content($setting_id, $default = '') {
+        echo isabel_get_word_editor_content($setting_id, $default);
+    }
+}
+
+/**
+ * Fonction de compatibilité pour les anciens settings
+ */
+if (!function_exists('isabel_get_word_or_regular_content')) {
+    function isabel_get_word_or_regular_content($word_setting, $regular_setting, $default = '') {
+        // Priorité aux éditeurs Word-like
+        $word_content = get_theme_mod($word_setting, '');
+        if (!empty($word_content)) {
+            return wp_kses_post($word_content);
+        }
+        
+        // Fallback vers l'ancien système
+        return esc_html(get_theme_mod($regular_setting, $default));
+    }
+}
+
+// ========================================
 // SÉCURITÉ ET NETTOYAGE
 // ========================================
 
@@ -91,12 +131,6 @@ function isabel_remove_version() {
     return '';
 }
 add_filter('the_generator', 'isabel_remove_version');
-
-// ========================================
-// ACTIVATION DU CUSTOMIZER
-// ========================================
-
-add_action('customize_register', 'isabel_customize_register');
 
 // ========================================
 // AMÉLIORATION DE LA CONFIGURATION EMAIL
@@ -129,335 +163,28 @@ add_filter('wp_mail_from_name', function($from_name) {
 });
 
 // ========================================
-// SECTION QUALIOPI - VERSION CORRIGÉE
-// ========================================
-
-/**
- * Affiche la section certification Qualiopi - VERSION CORRIGÉE
- * @param string $context - 'home' pour la page d'accueil, 'page' pour les autres pages
- */
-function isabel_display_qualiopi_section($context = 'page') {
-    
-    // Vérifier si la section est activée
-    if (!isabel_get_option('isabel_qualiopi_enable', true)) {
-        return;
-    }
-    
-    // Récupérer les options depuis le customizer
-    $logo = isabel_get_option('isabel_qualiopi_logo', '');
-    $title = isabel_get_option('isabel_qualiopi_title', 'Organisme de formation certifié Qualiopi');
-    $description = isabel_get_option('isabel_qualiopi_description', 'La certification qualité a été délivrée au titre de la catégorie d\'actions suivante : actions de formation');
-    $number = isabel_get_option('isabel_qualiopi_number', '');
-    $date = isabel_get_option('isabel_qualiopi_date', '');
-    $style = isabel_get_option('isabel_qualiopi_style', 'standard');
-    
-    // Définir les classes CSS selon le contexte et le style
-    $section_class = $context === 'home' ? 'qualiopi-home-section' : '';
-    $container_class = $context === 'home' ? 'qualiopi-home-certification' : 'qualiopi-certification';
-    $content_class = $context === 'home' ? 'qualiopi-home-content' : 'qualiopi-content';
-    $logo_class = $context === 'home' ? 'qualiopi-home-logo' : 'qualiopi-logo';
-    $text_class = $context === 'home' ? 'qualiopi-home-text' : 'qualiopi-text';
-    
-    // Ajouter des classes pour les styles
-    $style_classes = '';
-    switch ($style) {
-        case 'compact':
-            $style_classes = ' qualiopi-compact';
-            break;
-        case 'premium':
-            $style_classes = ' qualiopi-premium';
-            break;
-        default:
-            $style_classes = ' qualiopi-standard';
-    }
-    
-    // Conteneur selon le contexte
-    if ($context === 'home') {
-        echo '<section class="' . esc_attr($section_class . $style_classes) . '">';
-        echo '<div class="section-container">';
-    }
-    
-    // CORRECTION: Utiliser echo au lieu de mélanger PHP et HTML
-    echo '<div class="' . esc_attr($container_class . $style_classes) . '">';
-    echo '<div class="' . esc_attr($content_class) . '">';
-    
-    if (!empty($logo)) {
-        echo '<div class="' . esc_attr($logo_class) . '">';
-        echo '<img src="' . esc_url($logo) . '" alt="Certification Qualiopi" />';
-        echo '</div>';
-    }
-    
-    echo '<div class="' . esc_attr($text_class) . '">';
-    echo '<h3>' . esc_html($title) . '</h3>';
-    echo '<p>' . esc_html($description) . '</p>';
-    
-    if (!empty($number)) {
-        echo '<p class="qualiopi-number">';
-        echo '<strong>N° de certification :</strong> ' . esc_html($number);
-        echo '</p>';
-    }
-    
-    if (!empty($date)) {
-        echo '<p class="qualiopi-date">';
-        echo esc_html($date);
-        echo '</p>';
-    }
-    
-    echo '</div>'; // Fermer text_class
-    echo '</div>'; // Fermer content_class
-    echo '</div>'; // Fermer container_class
-    
-    // Fermer le conteneur pour la page d'accueil
-    if ($context === 'home') {
-        echo '</div>';
-        echo '</section>';
-    }
-}
-
-/**
- * CSS pour les différents styles Qualiopi - VERSION COMPLÈTE
- */
-function isabel_qualiopi_styles() {
-    ?>
-    <style>
-    /* Styles de base Qualiopi */
-    .qualiopi-certification,
-    .qualiopi-home-certification {
-        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-        border: 2px solid #cbd5e1;
-        border-radius: 16px;
-        padding: 2rem;
-        margin: 2rem 0 3rem 0;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-    }
-    
-    .qualiopi-content,
-    .qualiopi-home-content {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    .qualiopi-logo,
-    .qualiopi-home-logo {
-        flex-shrink: 0;
-    }
-    
-    .qualiopi-logo img,
-    .qualiopi-home-logo img {
-        height: 80px;
-        width: auto;
-        object-fit: contain;
-    }
-    
-    .qualiopi-text h3,
-    .qualiopi-home-text h3 {
-        color: #1e40af;
-        font-size: 1.3rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        margin-top: 0;
-    }
-    
-    .qualiopi-text p,
-    .qualiopi-home-text p {
-        color: #475569;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        margin: 0.5rem 0;
-        font-style: italic;
-    }
-    
-    .qualiopi-number {
-        font-style: normal !important;
-        font-size: 0.9rem !important;
-        color: #1e40af !important;
-    }
-    
-    .qualiopi-date {
-        font-style: normal !important;
-        font-size: 0.85rem !important;
-        color: #64748b !important;
-        font-weight: 500 !important;
-    }
-    
-    /* Style Premium */
-    .qualiopi-premium {
-        background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
-        border: 2px solid #3b82f6 !important;
-        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15) !important;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .qualiopi-premium::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #1e40af, #3b82f6, #60a5fa);
-    }
-    
-    /* Style Compact */
-    .qualiopi-compact {
-        padding: 1.5rem !important;
-        margin: 1.5rem 0 2rem 0 !important;
-    }
-    
-    .qualiopi-compact .qualiopi-logo img,
-    .qualiopi-compact .qualiopi-home-logo img {
-        height: 60px !important;
-    }
-    
-    .qualiopi-compact h3 {
-        font-size: 1.1rem !important;
-    }
-    
-    .qualiopi-compact p {
-        font-size: 0.9rem !important;
-    }
-    
-    /* Page d'accueil spécifique */
-    .qualiopi-home-section {
-        padding: 3rem 0;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        border-top: 1px solid #e2e8f0;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .qualiopi-home-certification {
-        max-width: 700px;
-        margin: 0 auto;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .qualiopi-home-logo img {
-        height: 90px;
-        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-    }
-    
-    .qualiopi-home-text h3 {
-        font-size: 1.4rem;
-        line-height: 1.3;
-    }
-    
-    .qualiopi-home-text p {
-        font-size: 1rem;
-        font-weight: 500;
-        line-height: 1.6;
-    }
-    
-    .qualiopi-home-certification::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #1e40af, #3b82f6, #60a5fa);
-    }
-    
-    .qualiopi-home-content {
-        gap: 2.5rem;
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-        .qualiopi-content,
-        .qualiopi-home-content {
-            flex-direction: column;
-            text-align: center;
-            gap: 1.5rem;
-        }
-        
-        .qualiopi-logo img,
-        .qualiopi-home-logo img {
-            height: 60px;
-        }
-        
-        .qualiopi-home-logo img {
-            height: 70px;
-        }
-        
-        .qualiopi-text h3,
-        .qualiopi-home-text h3 {
-            font-size: 1.1rem;
-        }
-        
-        .qualiopi-home-text h3 {
-            font-size: 1.2rem;
-        }
-        
-        .qualiopi-home-text p {
-            font-size: 0.95rem;
-        }
-        
-        .qualiopi-compact .qualiopi-logo img {
-            height: 50px !important;
-        }
-        
-        .qualiopi-home-section {
-            padding: 2rem 0;
-        }
-        
-        .qualiopi-home-certification {
-            padding: 2rem;
-            border-radius: 16px;
-            margin: 0 1rem;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .qualiopi-certification,
-        .qualiopi-home-certification {
-            padding: 1.5rem;
-            margin: 1rem 0 2rem 0;
-        }
-        
-        .qualiopi-compact {
-            padding: 1rem !important;
-        }
-        
-        .qualiopi-home-certification {
-            margin: 0 1rem;
-        }
-        
-        .qualiopi-home-logo img {
-            height: 60px;
-        }
-        
-        .qualiopi-home-text h3 {
-            font-size: 1.1rem;
-        }
-        
-        .qualiopi-home-text p {
-            font-size: 0.9rem;
-        }
-    }
-    </style>
-    <?php
-}
-add_action('wp_head', 'isabel_qualiopi_styles');
-
-// ========================================
 // VÉRIFICATIONS ET DEBUG
 // ========================================
 
 // Vérification au chargement
 add_action('wp_loaded', function() {
     if (defined('WP_DEBUG') && WP_DEBUG) {
-        error_log('=== ISABEL THEME LOADED CHECK ===');
+        error_log('=== ISABEL THEME LOADED CHECK - SYSTÈME MODULAIRE ===');
         error_log('Contact handler hooks registered: ' . (has_action('wp_ajax_isabel_contact') ? 'YES' : 'NO'));
         error_log('Admin interface loaded: ' . (function_exists('isabel_contacts_page') ? 'YES' : 'NO'));
         error_log('Customizer loaded: ' . (function_exists('isabel_customize_register') ? 'YES' : 'NO'));
+        
+        // Vérifier les customizers modulaires
+        error_log('Global customizer: ' . (function_exists('isabel_register_global_customizer') ? 'YES' : 'NO'));
+        error_log('Header customizer: ' . (function_exists('isabel_register_header_customizer') ? 'YES' : 'NO'));
+        error_log('Home customizer: ' . (function_exists('isabel_register_home_customizer') ? 'YES' : 'NO'));
+        error_log('Coaching customizer: ' . (function_exists('isabel_register_coaching_customizer') ? 'YES' : 'NO'));
+        error_log('VAE customizer: ' . (function_exists('isabel_register_vae_customizer') ? 'YES' : 'NO'));
+        error_log('Hypno customizer: ' . (function_exists('isabel_register_hypno_customizer') ? 'YES' : 'NO'));
+        error_log('Consultation customizer: ' . (function_exists('isabel_register_consultation_customizer') ? 'YES' : 'NO'));
+        error_log('Footer customizer: ' . (function_exists('isabel_register_footer_customizer') ? 'YES' : 'NO'));
+        error_log('Modal customizer: ' . (function_exists('isabel_register_modal_customizer') ? 'YES' : 'NO'));
+        error_log('Qualiopi customizer: ' . (function_exists('isabel_register_qualiopi_customizer') ? 'YES' : 'NO'));
         
         // Vérifier la table
         global $wpdb;
@@ -465,7 +192,7 @@ add_action('wp_loaded', function() {
         $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
         error_log('Contact table exists: ' . ($table_exists ? 'YES' : 'NO'));
         
-        error_log('===================================');
+        error_log('============================================');
     }
 });
 
@@ -503,6 +230,194 @@ add_action('init', function() {
         error_log('ISABEL: Table contacts manquante - création en cours');
         if (function_exists('isabel_create_contacts_table')) {
             isabel_create_contacts_table();
+        }
+    }
+});
+
+// ========================================
+// NOUVELLES FONCTIONS POUR LE SYSTÈME MODULAIRE
+// ========================================
+
+/**
+ * Vérifier si tous les customizers modulaires sont chargés
+ */
+function isabel_check_modular_customizers() {
+    $required_functions = array(
+        'isabel_register_global_customizer',
+        'isabel_register_header_customizer',
+        'isabel_register_home_customizer',
+        'isabel_register_coaching_customizer',
+        'isabel_register_vae_customizer',
+        'isabel_register_hypno_customizer',
+        'isabel_register_consultation_customizer',
+        'isabel_register_footer_customizer',
+        'isabel_register_modal_customizer',
+        'isabel_register_qualiopi_customizer'
+    );
+    
+    $missing = array();
+    foreach ($required_functions as $function) {
+        if (!function_exists($function)) {
+            $missing[] = $function;
+        }
+    }
+    
+    if (!empty($missing)) {
+        error_log('ISABEL: Customizers manquants: ' . implode(', ', $missing));
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Fonction d'aide pour créer les dossiers du système modulaire
+ */
+function isabel_create_customizer_directories() {
+    $customizer_dir = get_template_directory() . '/inc/customizer';
+    
+    if (!file_exists($customizer_dir)) {
+        wp_mkdir_p($customizer_dir);
+        error_log('ISABEL: Dossier customizer créé: ' . $customizer_dir);
+    }
+    
+    // Vérifier que tous les fichiers customizer existent
+    $required_files = array(
+        'customizer-global.php',
+        'customizer-header.php',
+        'customizer-home.php',
+        'customizer-coaching.php',
+        'customizer-vae.php',
+        'customizer-hypno.php',
+        'customizer-consultation.php',
+        'customizer-footer.php',
+        'customizer-modal.php',
+        'customizer-qualiopi.php'
+    );
+    
+    $missing_files = array();
+    foreach ($required_files as $file) {
+        if (!file_exists($customizer_dir . '/' . $file)) {
+            $missing_files[] = $file;
+        }
+    }
+    
+    if (!empty($missing_files)) {
+        error_log('ISABEL: Fichiers customizer manquants: ' . implode(', ', $missing_files));
+    }
+    
+    return empty($missing_files);
+}
+
+// Vérifier l'intégrité du système modulaire au chargement
+add_action('after_setup_theme', function() {
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        isabel_create_customizer_directories();
+        isabel_check_modular_customizers();
+    }
+});
+
+// ========================================
+// MIGRATION ET COMPATIBILITÉ
+// ========================================
+
+/**
+ * Fonction de migration des anciens settings vers les nouveaux éditeurs Word-like
+ */
+function isabel_migrate_to_modular_customizers() {
+    // Cette fonction peut être appelée pour migrer automatiquement
+    // les anciens réglages vers les nouveaux éditeurs Word-like
+    
+    $migrations = array(
+        // Hero section
+        'isabel_main_name' => 'isabel_main_name_word',
+        'isabel_subtitle' => 'isabel_subtitle_word',
+        'isabel_intro_text' => 'isabel_intro_text_word',
+        
+        // Header
+        'isabel_header_name' => 'isabel_header_name_word',
+        'isabel_header_subtitle' => 'isabel_header_subtitle_word',
+        
+        // Services
+        'isabel_services_title' => 'isabel_services_title_word',
+        'isabel_services_subtitle' => 'isabel_services_subtitle_word',
+        
+        // CTA
+        'isabel_cta_title' => 'isabel_cta_title_word',
+        'isabel_cta_text' => 'isabel_cta_text_word',
+        
+        // Modal
+        'isabel_form_title' => 'isabel_modal_title_word',
+        'isabel_form_subtitle' => 'isabel_modal_subtitle_word',
+        
+        // Footer
+        'isabel_footer_name' => 'isabel_footer_name_word',
+        'isabel_footer_description' => 'isabel_footer_description_word'
+    );
+    
+    $migrated = 0;
+    foreach ($migrations as $old_setting => $new_setting) {
+        $old_value = get_theme_mod($old_setting, '');
+        $new_value = get_theme_mod($new_setting, '');
+        
+        // Si nouveau vide et ancien rempli, migrer
+        if (empty($new_value) && !empty($old_value)) {
+            // Convertir le texte simple en HTML formaté
+            $html_value = '<p>' . esc_html($old_value) . '</p>';
+            set_theme_mod($new_setting, $html_value);
+            $migrated++;
+        }
+    }
+    
+    if ($migrated > 0) {
+        error_log("ISABEL: Migration effectuée - {$migrated} paramètres migrés vers les éditeurs Word-like");
+    }
+    
+    return $migrated;
+}
+
+// Décommenter la ligne suivante pour activer la migration automatique
+// add_action('after_setup_theme', 'isabel_migrate_to_modular_customizers');
+
+/**
+ * Interface d'admin pour la migration
+ */
+function isabel_admin_migration_notice() {
+    // Vérifier s'il y a des anciens paramètres à migrer
+    $old_settings = array('isabel_main_name', 'isabel_subtitle', 'isabel_intro_text');
+    $has_old_data = false;
+    
+    foreach ($old_settings as $setting) {
+        if (!empty(get_theme_mod($setting, ''))) {
+            $has_old_data = true;
+            break;
+        }
+    }
+    
+    if ($has_old_data && current_user_can('manage_options')) {
+        ?>
+        <div class="notice notice-info is-dismissible">
+            <p><strong>🔄 Migration disponible :</strong> Des anciens paramètres de personnalisation ont été détectés. 
+            <a href="<?php echo admin_url('admin.php?page=isabel-settings&migrate=1'); ?>">Cliquez ici pour les migrer vers les nouveaux éditeurs Word-like</a>.</p>
+        </div>
+        <?php
+    }
+}
+add_action('admin_notices', 'isabel_admin_migration_notice');
+
+// Traiter la migration depuis l'admin
+add_action('admin_init', function() {
+    if (isset($_GET['migrate']) && $_GET['migrate'] == '1' && current_user_can('manage_options')) {
+        $migrated = isabel_migrate_to_modular_customizers();
+        
+        if ($migrated > 0) {
+            add_action('admin_notices', function() use ($migrated) {
+                ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><strong>✅ Migration réussie :</strong> <?php echo $migrated; ?> paramètres ont été migrés vers les nouveaux éditeurs Word-like.</p>
+                </div>
+                <?php
+            });
         }
     }
 });
